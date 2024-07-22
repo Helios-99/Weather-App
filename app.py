@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import requests
 from config import Config
 from cachetools import TTLCache
@@ -24,6 +24,19 @@ def index():
             else:
                 weather_data = {'error': 'City not found'}
     return render_template('index.html', weather_data=weather_data)
+
+@app.route('/suggestions', methods=['GET'])
+def suggestions():
+    query = request.args.get('query', '').lower()
+    geo_api_username = app.config['GEONAMES_USERNAME']
+    
+    url = f'http://api.geonames.org/searchJSON?name_startsWith={query}&maxRows=10&username={geo_api_username}'
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        suggestions = [city['name'] for city in data['geonames']]
+        return jsonify(suggestions)
+    return jsonify([])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
